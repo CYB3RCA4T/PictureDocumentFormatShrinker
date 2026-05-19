@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Compress PDF files in your browser — reduce file size while preserving quality. 100% private, no uploads.">
+    <meta property="og:title" content="Compress PDF - ShowTools">
+    <meta property="og:description" content="Compress PDF files in your browser — reduce file size while preserving quality. 100% private, no uploads.">
+    <meta property="og:type" content="website">
+    <title>Compress PDF - ShowTools</title>
+    <link rel="stylesheet" href="shared.css">
+    <script src="shared.js"></script>
+    <style>
+        .workspace { max-width: 700px; }
+        .workspace-inner {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 32px;
+        }
+
+        .file-info {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            margin-bottom: 24px;
+        }
+        .file-info.visible { display: flex; }
+        .file-info .icon { font-size: 24px; }
+        .file-info .details { flex: 1; }
+        .file-info .name { font-size: 14px; color: #e2e8f0; font-weight: 600; }
+        .file-info .size { font-size: 12px; color: #64748b; }
+        .file-info .remove {
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .file-info .remove:hover { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+
+        .presets {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .preset-btn {
+            background: #0f172a;
+            border: 2px solid #334155;
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            color: #e2e8f0;
+        }
+        .preset-btn:hover { border-color: #475569; }
+        .preset-btn.selected {
+            border-color: #22d3ee;
+            background: rgba(6, 182, 212, 0.1);
+        }
+        .preset-btn .label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .preset-btn .desc { font-size: 12px; color: #64748b; }
+        .preset-btn .dpi { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+        .progress-container {
+            display: none;
+            margin-top: 24px;
+        }
+        .progress-container.visible { display: block; }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #06b6d4, #9333ea);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+        .progress-status { font-weight: 600; color: #cbd5e1; }
+        .progress-time { font-variant-numeric: tabular-nums; }
+
+        .result {
+            display: none;
+            margin-top: 24px;
+            padding: 20px;
+            background: rgba(34, 211, 238, 0.05);
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 12px;
+            text-align: center;
+        }
+        .result.visible { display: block; }
+        .result .sizes {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .result .size-box {
+            text-align: center;
+        }
+        .result .size-label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+        .result .size-value { font-size: 20px; font-weight: 700; color: #e2e8f0; }
+        .result .arrow { font-size: 24px; color: #22d3ee; }
+        .result .savings {
+            font-size: 16px;
+            color: #4ade80;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .result .time { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .btn-group .btn { flex: 1; }
+
+        .warning {
+            display: none;
+            padding: 12px 16px;
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 8px;
+            color: #fbbf24;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .warning.visible { display: block; }
+
+        .footer-info {
+            margin-top: 32px;
+            text-align: center;
+            font-size: 12px;
+            color: #475569;
+        }
+        .footer-info a { color: #64748b; text-decoration: none; }
+        .footer-info a:hover { color: #22d3ee; }
+
+        .large-file-notice {
+            display: none;
+            padding: 12px 16px;
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            border-radius: 8px;
+            color: #c084fc;
+            font-size: 13px;
+            margin-bottom: 16px;
+        }
+        .large-file-notice.visible { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>
+            <a href="index.html" class="back" aria-label="Back to tools">&#x2190; Back to Tools</a>
+            <h1>Compress PDF</h1>
+            <div class="sub"><span class="shield" aria-hidden="true">&#x1F6E1;</span> <span class="sr-only">Shield icon.</span> 100% Private — processed in your browser</div>
+        </div>
+    </div>
+
+    <div class="upload-area" id="uploadArea" role="button" tabindex="0" aria-label="Select or drop a PDF file to compress">
+        <input type="file" id="fileInput" accept=".pdf,application/pdf">
+        <span class="icon" aria-hidden="true">&#x1F5DC;</span><span class="sr-only">Compress icon.</span>
+        <h2>Select a PDF to compress</h2>
+        <p>Reduce file size while preserving quality. All processing happens locally.</p>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Preparing...</p>
+    </div>
+
+    <div class="error-box" id="errorBox" role="alert"></div>
+
+    <div class="workspace" id="workspace">
+        <div class="workspace-inner">
+            <div class="file-info" id="fileInfo">
+                <span class="icon" aria-hidden="true">&#x1F4C4;</span>
+                <div class="details">
+                    <div class="name" id="fileName"></div>
+                    <div class="size" id="fileSize"></div>
+                </div>
+                <button class="remove" id="removeFile" aria-label="Remove file">&#x2715;</button>
+            </div>
+
+            <div class="warning" id="largeFileWarning">
+                &#x26A0; Large file detected. Compression may take a minute or two and could use significant browser memory.
+            </div>
+
+            <div class="large-file-notice" id="memoryNotice">
+                &#x1F4A1; Processing happens in your browser. For files over 50MB, consider closing other tabs to free up memory.
+            </div>
+
+            <div class="presets" id="presets">
+                <button class="preset-btn" data-preset="screen" aria-label="Screen quality preset - 72 DPI, smallest file size">
+                    <div class="label">Screen</div>
+                    <div class="desc">Smallest size, lower quality</div>
+                    <div class="dpi">72 DPI images</div>
+                </button>
+                <button class="preset-btn selected" data-preset="ebook" aria-label="eBook quality preset - 150 DPI, balanced size and quality">
+                    <div class="label">eBook</div>
+                    <div class="desc">Good balance of size &amp; quality</div>
+                    <div class="dpi">150 DPI images</div>
+                </button>
+                <button class="preset-btn" data-preset="printer" aria-label="Printer quality preset - 300 DPI, high quality">
+                    <div class="label">Printer</div>
+                    <div class="desc">High quality, moderate compression</div>
+                    <div class="dpi">300 DPI images</div>
+                </button>
+                <button class="preset-btn" data-preset="prepress" aria-label="Prepress quality preset - 300 DPI maximum quality">
+                    <div class="label">Prepress</div>
+                    <div class="desc">Maximum quality, minimal compression</div>
+                    <div class="dpi">300 DPI, preserve details</div>
+                </button>
+            </div>
+
+            <button class="btn btn-primary btn-full" id="compressBtn" aria-label="Compress PDF">
+                &#x1F5DC; Compress PDF
+            </button>
+
+            <div class="progress-container" id="progressContainer">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressFill"></div>
+                </div>
+                <div class="progress-info">
+                    <span class="progress-status" id="progressStatus">Loading...</span>
+                    <span class="progress-time" id="progressTime"></span>
+                </div>
+                <div class="btn-group" style="margin-top: 16px;">
+                    <button class="btn btn-secondary btn-full" id="cancelBtn">Cancel</button>
+                </div>
+            </div>
+
+            <div class="result" id="result">
+                <div class="sizes">
+                    <div class="size-box">
+                        <div class="size-label">Original</div>
+                        <div class="size-value" id="originalSize"></div>
+                    </div>
+                    <span class="arrow">&#x2192;</span>
+                    <div class="size-box">
+                        <div class="size-label">Compressed</div>
+                        <div class="size-value" id="compressedSize"></div>
+                    </div>
+                </div>
+                <div class="savings" id="savings"></div>
+                <div class="time" id="elapsedTime"></div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="downloadBtn" aria-label="Download compressed PDF">&#x2B07; Download</button>
+                    <button class="btn btn-secondary" id="resetBtn">Compress Another</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-info">
+            <p>Powered by Ghostscript WASM &middot; <a href="#" id="sourceLink" target="_blank" rel="noopener">View Source Code</a></p>
+            <p style="margin-top: 4px;">This tool is licensed under <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">AGPL-3.0</a></p>
+        </div>
+    </div>
+
+<script>
+(function() {
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const loading = document.getElementById('loading');
+    const errorBox = document.getElementById('errorBox');
+    const workspace = document.getElementById('workspace');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const removeFile = document.getElementById('removeFile');
+    const largeFileWarning = document.getElementById('largeFileWarning');
+    const memoryNotice = document.getElementById('memoryNotice');
+    const presets = document.getElementById('presets');
+    const compressBtn = document.getElementById('compressBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressStatus = document.getElementById('progressStatus');
+    const progressTime = document.getElementById('progressTime');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const result = document.getElementById('result');
+    const originalSize = document.getElementById('originalSize');
+    const compressedSize = document.getElementById('compressedSize');
+    const savings = document.getElementById('savings');
+    const elapsedTime = document.getElementById('elapsedTime');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const sourceLink = document.getElementById('sourceLink');
+
+    // TODO: Replace with your actual GitHub repo URL when ready
+    sourceLink.href = 'https://github.com/YOUR_USERNAME/showtools-pdf-compressor';
+
+    const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
+    const VERY_LARGE_FILE_THRESHOLD = 50 * 1024 * 1024; // 50MB
+
+    let currentFile = null;
+    let currentPdfBytes = null;
+    let selectedPreset = 'ebook';
+    let worker = null;
+    let jobId = 0;
+    let compressedBlobUrl = null;
+
+    setupUploadArea({
+        uploadArea,
+        fileInput,
+        onFiles: (files) => {
+            const { valid, errors } = validateFiles(files);
+            if (errors.length > 0) showError(errorBox, errors.join('\n'));
+            if (valid.length > 0) loadFile(valid[0]);
+        }
+    });
+
+    // Preset selection
+    presets.addEventListener('click', (e) => {
+        const btn = e.target.closest('.preset-btn');
+        if (!btn) return;
+
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedPreset = btn.dataset.preset;
+    });
+
+    removeFile.addEventListener('click', resetToUpload);
+    resetBtn.addEventListener('click', resetToUpload);
+
+    compressBtn.addEventListener('click', startCompression);
+    cancelBtn.addEventListener('click', cancelCompression);
+
+    downloadBtn.addEventListener('click', () => {
+        if (compressedBlobUrl) {
+            const a = document.createElement('a');
+            a.href = compressedBlobUrl;
+            const baseName = currentFile.name.replace(/\.pdf$/i, '');
+            a.download = baseName + '_compressed.pdf';
+            a.click();
+        }
+    });
+
+    async function loadFile(file) {
+        hideError(errorBox);
+        uploadArea.style.display = 'none';
+        loading.classList.add('visible');
+        workspace.classList.remove('visible');
+        result.classList.remove('visible');
+        progressContainer.classList.remove('visible');
+
+        try {
+            currentFile = file;
+            const buf = await file.arrayBuffer();
+            currentPdfBytes = new Uint8Array(buf);
+
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('visible');
+
+            // Show warnings for large files
+            if (file.size > VERY_LARGE_FILE_THRESHOLD) {
+                largeFileWarning.classList.add('visible');
+                memoryNotice.classList.add('visible');
+            } else if (file.size > LARGE_FILE_THRESHOLD) {
+                largeFileWarning.classList.add('visible');
+                memoryNotice.classList.remove('visible');
+            } else {
+                largeFileWarning.classList.remove('visible');
+                memoryNotice.classList.remove('visible');
+            }
+
+            loading.classList.remove('visible');
+            workspace.classList.add('visible');
+
+        } catch (err) {
+            loading.classList.remove('visible');
+            uploadArea.style.display = '';
+            showError(errorBox, 'Error loading file: ' + err.message);
+        }
+    }
+
+    function resetToUpload() {
+        // Clean up previous compressed blob URL
+        if (compressedBlobUrl) {
+            URL.revokeObjectURL(compressedBlobUrl);
+            compressedBlobUrl = null;
+        }
+
+        currentFile = null;
+        currentPdfBytes = null;
+        fileInfo.classList.remove('visible');
+        largeFileWarning.classList.remove('visible');
+        memoryNotice.classList.remove('visible');
+        result.classList.remove('visible');
+        progressContainer.classList.remove('visible');
+        compressBtn.style.display = '';
+        compressBtn.disabled = false;
+
+        if (worker) {
+            worker.terminate();
+            worker = null;
+        }
+
+        workspace.classList.remove('visible');
+        uploadArea.style.display = '';
+        fileInput.value = '';
+    }
+
+    function startCompression() {
+        if (!currentPdfBytes) return;
+
+        hideError(errorBox);
+        compressBtn.disabled = true;
+        compressBtn.style.display = 'none';
+        result.classList.remove('visible');
+        progressContainer.classList.add('visible');
+        progressFill.style.width = '0%';
+        progressStatus.textContent = 'Loading compression engine...';
+        progressTime.textContent = '';
+
+        jobId++;
+        const currentJobId = jobId;
+
+        // Initialize worker
+        worker = new Worker('compress-worker.js', { type: 'module' });
+
+        const startTime = Date.now();
+        let lastProgressTime = Date.now();
+
+        worker.addEventListener('message', (e) => {
+            const msg = e.data;
+            if (msg.jobId !== currentJobId) return;
+
+            if (msg.type === 'progress') {
+                progressFill.style.width = msg.progress + '%';
+                progressStatus.textContent = msg.message;
+
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+                if (msg.progress > 0 && msg.progress < 100) {
+                    const rate = msg.progress / (Date.now() - lastProgressTime + 1);
+                    const remaining = Math.max(0, (100 - msg.progress) / rate / 1000);
+                    progressTime.textContent = elapsed + 's elapsed' + (remaining > 0 ? ' · ~' + Math.ceil(remaining) + 's left' : '');
+                } else {
+                    progressTime.textContent = elapsed + 's';
+                }
+            } else if (msg.type === 'complete') {
+                worker.terminate();
+                worker = null;
+
+                // Clean up previous blob URL
+                if (compressedBlobUrl) {
+                    URL.revokeObjectURL(compressedBlobUrl);
+                }
+
+                const blob = new Blob([new Uint8Array(msg.compressed)], { type: 'application/pdf' });
+                compressedBlobUrl = URL.createObjectURL(blob);
+
+                originalSize.textContent = formatFileSize(msg.originalSize);
+                compressedSize.textContent = formatFileSize(msg.compressedSize);
+
+                const ratio = ((1 - msg.compressedSize / msg.originalSize) * 100).toFixed(0);
+                if (ratio > 0) {
+                    savings.textContent = ratio + '% smaller';
+                    savings.style.color = '#4ade80';
+                } else {
+                    savings.textContent = 'File is already optimized';
+                    savings.style.color = '#fbbf24';
+                }
+
+                elapsedTime.textContent = 'Completed in ' + msg.elapsed + 's';
+
+                progressContainer.classList.remove('visible');
+                result.classList.add('visible');
+            } else if (msg.type === 'error') {
+                worker.terminate();
+                worker = null;
+                progressContainer.classList.remove('visible');
+                compressBtn.style.display = '';
+                compressBtn.disabled = false;
+                showError(errorBox, msg.message);
+            } else if (msg.type === 'cancelled') {
+                worker.terminate();
+                worker = null;
+                progressContainer.classList.remove('visible');
+                compressBtn.style.display = '';
+                compressBtn.disabled = false;
+                progressStatus.textContent = 'Cancelled';
+            }
+        });
+
+        worker.addEventListener('error', (e) => {
+            worker = null;
+            progressContainer.classList.remove('visible');
+            compressBtn.style.display = '';
+            compressBtn.disabled = false;
+            showError(errorBox, 'Compression engine failed to load. This usually means your browser does not support module workers, or the WASM file could not be downloaded. Try Chrome, Firefox, or Edge.');
+        });
+
+        // Send compression job
+        worker.postMessage({
+            type: 'compress',
+            pdfBytes: currentPdfBytes.buffer,
+            preset: selectedPreset,
+            jobId: currentJobId
+        }, [currentPdfBytes.buffer]);
+    }
+
+    function cancelCompression() {
+        if (worker) {
+            worker.postMessage({ type: 'cancel', jobId });
+        }
+    }
+
+})();
+</script>
+</body>
+</html>
